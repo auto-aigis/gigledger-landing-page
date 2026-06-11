@@ -69,11 +69,12 @@ function PricingContent() {
   const txnId = searchParams.get("transaction_id");
   const checkoutSuccess = searchParams.get("checkout");
 
-  useEffect(() => {
-    if (txnId && checkoutSuccess === "success") {
-      verifyTransaction();
-    }
-  }, [txnId, checkoutSuccess]);
+   useEffect(() => {
+     if (txnId && checkoutSuccess === "success") {
+       verifyTransaction();
+     }
+   }, [txnId, checkoutSuccess, verifyTransaction]);
+
 
   const verifyTransaction = async () => {
     setLoading(true);

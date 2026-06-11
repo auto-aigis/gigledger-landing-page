@@ -21,11 +21,12 @@ function VerifyEmailContent() {
   const [resendLoading, setResendLoading] = useState(false);
   const [resendSent, setResendSent] = useState(false);
 
-  useEffect(() => {
-    if (token) {
-      handleVerify();
-    }
-  }, [token]);
+   useEffect(() => {
+     if (token) {
+       handleVerify();
+     }
+   }, [token, handleVerify]);
+
 
   const handleVerify = async () => {
     setLoading(true);

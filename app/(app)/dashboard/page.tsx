@@ -91,13 +91,14 @@ export default function DashboardPage() {
 
       {!canAddMore && subscription?.tier === "free" && (
         <div className="rounded-lg border border-yellow-300 bg-yellow-50 p-4">
-          <p className="text-sm text-yellow-800">
-            You've reached the free tier limit of 1 income source.{" "}
-            <Link href="/pricing" className="font-medium hover:underline">
-              Upgrade to Pro
-            </Link>{" "}
-            for unlimited sources.
-          </p>
+           <p className="text-sm text-yellow-800">
+             You&apos;ve reached the free tier limit of 1 income source.{" "}
+             <Link href="/pricing" className="font-medium hover:underline">
+               Upgrade to Pro
+             </Link>{" "}
+             for unlimited sources.
+           </p>
+
         </div>
       )}
 
