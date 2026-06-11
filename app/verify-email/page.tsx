@@ -22,25 +22,26 @@ function VerifyEmailContent() {
   const [resendSent, setResendSent] = useState(false);
 
    useEffect(() => {
+     const handleVerify = async () => {
+       setLoading(true);
+       setError("");
+       try {
+         await authApi.verifyEmail(token || "");
+         setVerified(true);
+         await refresh();
+         setTimeout(() => router.push("/dashboard"), 2000);
+       } catch (err) {
+         setError(err instanceof Error ? err.message : "Verification failed");
+       } finally {
+         setLoading(false);
+       }
+     };
+
      if (token) {
        handleVerify();
      }
-   }, [token, handleVerify]);
+   }, [token, refresh, router]);
 
-
-  const handleVerify = async () => {
-    setLoading(true);
-    setError("");
-    try {
-      await authApi.verifyEmail(token || "");
-      setVerified(true);
-      await refresh();
-      setTimeout(() => router.push("/dashboard"), 2000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Verification failed");
-    } finally {
-      setLoading(false);
-    }
   };
 
   const handleResend = async () => {
