@@ -70,25 +70,25 @@ function PricingContent() {
   const checkoutSuccess = searchParams.get("checkout");
 
    useEffect(() => {
+     const verifyTransaction = async () => {
+       setLoading(true);
+       try {
+         const result = await paddleApi.verifyTransaction(txnId || "");
+         await refresh();
+         window.history.replaceState({}, "", "/pricing");
+         alert(`Payment verified! Your ${result.tier} plan is active.`);
+       } catch (err) {
+         console.error("Transaction verification failed:", err);
+       } finally {
+         setLoading(false);
+       }
+     };
+
      if (txnId && checkoutSuccess === "success") {
        verifyTransaction();
      }
-   }, [txnId, checkoutSuccess, verifyTransaction]);
+   }, [txnId, checkoutSuccess, refresh]);
 
-
-  const verifyTransaction = async () => {
-    setLoading(true);
-    try {
-      const result = await paddleApi.verifyTransaction(txnId || "");
-      await refresh();
-      window.history.replaceState({}, "", "/pricing");
-      alert(`Payment verified! Your ${result.tier} plan is active.`);
-    } catch (err) {
-      console.error("Transaction verification failed:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleUpgrade = (priceId: string | null) => {
     if (!priceId) {
