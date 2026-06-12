@@ -162,7 +162,7 @@ function DashboardContent() {
               {gstEstimate?.is_approaching_threshold && (
                 <Alert className="border-yellow-200 bg-yellow-50 mt-3">
                   <AlertDescription className="text-yellow-800 text-xs">
-                    You're approaching the ₹20L GST registration threshold.
+                    You&apos;re approaching the ₹20L GST registration threshold.
                     Consider registering soon.
                   </AlertDescription>
                 </Alert>

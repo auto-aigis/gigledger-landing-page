@@ -58,7 +58,7 @@ export default function OnboardingPage() {
             Welcome to ₹ GigLedger
           </CardTitle>
           <p className="text-gray-600 mt-2">
-            Let's set up your freelancer profile
+            Let&apos;s set up your freelancer profile
           </p>
         </CardHeader>
         <CardContent>
