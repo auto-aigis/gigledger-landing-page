@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { authApi } from "@/app/_lib/api";
 import { useAuth } from "@/app/_lib/hooks";
 import { Button } from "@/components/ui/button";
@@ -17,20 +16,23 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-export default function OnboardingPage() {
-  const router = useRouter();
-  const { refresh } = useAuth();
-  const [displayName, setDisplayName] = useState("");
-  const [panNumber, setPanNumber] = useState("");
-  const [gstStatus, setGstStatus] = useState("unregistered");
-  const [primaryCurrency, setPrimaryCurrency] = useState("INR");
-  const [address, setAddress] = useState("");
-  const [error, setError] = useState("");
+export default function ProfilePage() {
+  const { user, refresh } = useAuth();
+  const [displayName, setDisplayName] = useState(user?.display_name || "");
+  const [panNumber, setPanNumber] = useState(user?.pan_number || "");
+  const [gstStatus, setGstStatus] = useState(user?.gst_status || "unregistered");
+  const [primaryCurrency, setPrimaryCurrency] = useState(
+    user?.primary_currency || "INR"
+  );
+  const [address, setAddress] = useState(user?.address || "");
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setSuccess(false);
     setLoading(true);
 
     try {
@@ -42,49 +44,56 @@ export default function OnboardingPage() {
         address || null
       );
       await refresh();
-      router.push("/dashboard");
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Onboarding failed");
+      setError(err instanceof Error ? err.message : "Failed to save profile");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-8">
-      <Card className="w-full max-w-2xl border-gray-200 bg-white">
+    <div className="p-6 space-y-6 max-w-2xl mx-auto">
+      <h1 className="text-3xl font-semibold text-gray-900">Profile</h1>
+
+      <Card className="bg-white border-gray-200">
         <CardHeader>
-          <CardTitle className="text-3xl text-gray-900">
-            Welcome to ₹ GigLedger
-          </CardTitle>
-          <p className="text-gray-600 mt-2">
-            Let's set up your freelancer profile
-          </p>
+          <CardTitle>Account Information</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSave} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-gray-900">
+                Email (Read-only)
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                value={user?.email || ""}
+                disabled
+                className="border-gray-300 bg-gray-50 text-gray-700"
+              />
+            </div>
             <div className="space-y-2">
               <Label htmlFor="displayName" className="text-gray-900">
-                Full Name *
+                Full Name
               </Label>
               <Input
                 id="displayName"
                 type="text"
-                placeholder="Rajesh Kumar"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
-                required
                 className="border-gray-300 bg-white text-gray-900"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="panNumber" className="text-gray-900">
-                PAN Number (Optional)
+                PAN Number
               </Label>
               <Input
                 id="panNumber"
                 type="text"
-                placeholder="AAAPQ5055K"
                 value={panNumber}
                 onChange={(e) => setPanNumber(e.target.value)}
                 className="border-gray-300 bg-white text-gray-900"
@@ -92,7 +101,7 @@ export default function OnboardingPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="gstStatus" className="text-gray-900">
-                GST Registration Status *
+                GST Registration Status
               </Label>
               <Select value={gstStatus} onValueChange={setGstStatus}>
                 <SelectTrigger className="border-gray-300 bg-white text-gray-900">
@@ -109,7 +118,7 @@ export default function OnboardingPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="primaryCurrency" className="text-gray-900">
-                Primary Income Currency *
+                Primary Currency
               </Label>
               <Select value={primaryCurrency} onValueChange={setPrimaryCurrency}>
                 <SelectTrigger className="border-gray-300 bg-white text-gray-900">
@@ -124,12 +133,11 @@ export default function OnboardingPage() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="address" className="text-gray-900">
-                Business Address (Optional)
+                Business Address
               </Label>
               <Input
                 id="address"
                 type="text"
-                placeholder="123 Main St, New Delhi"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
                 className="border-gray-300 bg-white text-gray-900"
@@ -142,17 +150,21 @@ export default function OnboardingPage() {
                 </AlertDescription>
               </Alert>
             )}
+            {success && (
+              <Alert className="border-green-200 bg-green-50">
+                <AlertDescription className="text-green-800">
+                  Profile updated successfully!
+                </AlertDescription>
+              </Alert>
+            )}
             <Button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              className="w-full bg-blue-600 hover:bg-blue-700"
             >
-              {loading ? "Setting up..." : "Continue"}
+              {loading ? "Saving..." : "Save Changes"}
             </Button>
           </form>
-          <p className="text-xs text-gray-500 mt-4 text-center">
-            Takes less than 5 minutes. You can update this later.
-          </p>
         </CardContent>
       </Card>
     </div>

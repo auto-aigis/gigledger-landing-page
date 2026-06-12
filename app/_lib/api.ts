@@ -1,18 +1,26 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
-export async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
+export async function apiFetch<T>(
+  path: string,
+  options?: RequestInit
+): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     credentials: "include",
-    headers: { "Content-Type": "application/json", ...options?.headers },
+    headers: {
+      "Content-Type": "application/json",
+      ...options?.headers,
+    },
     ...options,
   });
+
   if (!res.ok) {
     let msg = `API error: ${res.status}`;
     try {
       const err = await res.json();
       const d = err.detail;
       if (typeof d === "string") msg = d;
-      else if (Array.isArray(d)) msg = d.map((e: any) => e.msg).join(", ");
+      else if (Array.isArray(d))
+        msg = d.map((e: any) => e.msg).join(", ");
       else if (err.error) msg = err.error;
     } catch {}
     throw new Error(msg);
@@ -32,88 +40,136 @@ export const authApi = {
       body: JSON.stringify({ email, password }),
     }),
   logout: () =>
-    apiFetch<{ status: string }>("/api/auth/logout", { method: "POST" }),
-  me: () => apiFetch<{ user: any; subscription: any }>("/api/auth/me"),
-  getSubscription: () =>
-    apiFetch<any>("/api/auth/subscription"),
-  updateOnboarding: (data: any) =>
-    apiFetch<{ status: string }>("/api/auth/onboarding", {
-      method: "PUT",
-      body: JSON.stringify(data),
+    apiFetch<{ status: string }>("/api/auth/logout", {
+      method: "POST",
+    }),
+  me: () => apiFetch<any>("/api/auth/me"),
+  verifyEmail: (token: string) =>
+    apiFetch<{ status: string }>("/api/auth/verify-email", {
+      method: "POST",
+      body: JSON.stringify({ token }),
     }),
   resendVerification: (email: string) =>
     apiFetch<{ status: string }>("/api/auth/resend-verification", {
       method: "POST",
       body: JSON.stringify({ email }),
     }),
-  verifyEmail: (token: string) =>
-    apiFetch<{ status: string }>("/api/auth/verify-email", {
-      method: "POST",
-      body: JSON.stringify({ token }),
+  saveOnboarding: (
+    display_name: string,
+    pan_number: string | null,
+    gst_status: string,
+    primary_currency: string,
+    address: string | null
+  ) =>
+    apiFetch<{ status: string }>("/api/auth/onboarding", {
+      method: "PUT",
+      body: JSON.stringify({
+        display_name,
+        pan_number,
+        gst_status,
+        primary_currency,
+        address,
+      }),
     }),
+  getSubscription: () => apiFetch<any>("/api/auth/subscription"),
 };
 
 export const incomeApi = {
-  list: (skip = 0, limit = 50) =>
-    apiFetch<any[]>(`/api/income?skip=${skip}&limit=${limit}`),
-  create: (data: any) =>
-    apiFetch<any>("/api/income", { method: "POST", body: JSON.stringify(data) }),
+  list: () => apiFetch<any[]>("/api/income/"),
+  create: (
+    platform: string,
+    amount_original: number,
+    original_currency: string,
+    amount_inr: number,
+    date: string,
+    client_name: string | null,
+    service_type: string
+  ) =>
+    apiFetch<any>("/api/income/", {
+      method: "POST",
+      body: JSON.stringify({
+        platform,
+        amount_original,
+        original_currency,
+        amount_inr,
+        date,
+        client_name,
+        service_type,
+      }),
+    }),
+  update: (
+    id: string,
+    platform: string,
+    amount_original: number,
+    original_currency: string,
+    amount_inr: number,
+    date: string,
+    client_name: string | null,
+    service_type: string
+  ) =>
+    apiFetch<any>(`/api/income/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({
+        platform,
+        amount_original,
+        original_currency,
+        amount_inr,
+        date,
+        client_name,
+        service_type,
+      }),
+    }),
   delete: (id: string) =>
-    apiFetch<{ status: string }>(`/api/income/${id}`, { method: "DELETE" }),
-};
-
-export const gstApi = {
-  summary: () => apiFetch<any>("/api/gst/summary"),
-  advanceTax: () => apiFetch<any>("/api/gst/advance-tax"),
+    apiFetch<{ status: string }>(`/api/income/${id}`, {
+      method: "DELETE",
+    }),
+  getSummary: () => apiFetch<any>("/api/income/summary"),
+  getGSTEstimate: () => apiFetch<any>("/api/income/gst-estimate"),
 };
 
 export const invoiceApi = {
-  list: (skip = 0, limit = 50) =>
-    apiFetch<any[]>(`/api/invoices?skip=${skip}&limit=${limit}`),
-  create: (data: any) =>
-    apiFetch<any>("/api/invoices", { method: "POST", body: JSON.stringify(data) }),
-  get: (id: string) => apiFetch<any>(`/api/invoices/${id}`),
-  downloadPdf: (id: string) => fetch(`${API_URL}/api/invoices/${id}/pdf`, { credentials: "include" }),
-};
-
-export const settingsApi = {
-  getProfile: () => apiFetch<any>("/api/settings/profile"),
-  updateProfile: (data: any) =>
-    apiFetch<{ status: string }>("/api/settings/profile", {
-      method: "PUT",
-      body: JSON.stringify(data),
-    }),
-  getFXRates: () => apiFetch<any>("/api/settings/fx-rates"),
-  setFXRate: (currency: string, rate: number) =>
-    apiFetch<any>("/api/settings/fx-rates", {
-      method: "PUT",
-      body: JSON.stringify({ currency_code: currency, rate_to_inr: rate }),
-    }),
-  getAPIKeys: () => apiFetch<any[]>("/api/settings/api-keys"),
-  setAPIKey: (keyName: string, apiKey: string) =>
-    apiFetch<{ status: string }>(`/api/settings/api-keys/${keyName}`, {
-      method: "PUT",
-      body: JSON.stringify({ api_key: apiKey }),
-    }),
-  deleteAPIKey: (keyName: string) =>
-    apiFetch<{ status: string }>(`/api/settings/api-keys/${keyName}`, { method: "DELETE" }),
-};
-
-export const copilotApi = {
-  chat: (message: string) =>
-    apiFetch<{ response: string }>("/api/copilot/chat", {
+  list: () => apiFetch<any[]>("/api/invoices/"),
+  create: (
+    client_name: string,
+    client_address: string,
+    client_gstin: string | null,
+    service_description: string,
+    hsc_sac_code: string | null,
+    amount: number,
+    gst_rate: number,
+    invoice_date: string
+  ) =>
+    apiFetch<any>("/api/invoices/", {
       method: "POST",
-      body: JSON.stringify({ message }),
+      body: JSON.stringify({
+        client_name,
+        client_address,
+        client_gstin,
+        service_description,
+        hsc_sac_code,
+        amount,
+        gst_rate,
+        invoice_date,
+      }),
     }),
-  exportCSV: () => apiFetch<{ csv_data: string; filename: string }>("/api/copilot/export-csv"),
-  gstFilingSummary: () =>
-    apiFetch<{ report_data: string; filename: string }>("/api/copilot/gst-filing-summary"),
+  download: (invoiceId: string) =>
+    fetch(`${API_URL}/api/invoices/${invoiceId}/download`, {
+      credentials: "include",
+    }),
 };
 
 export const paddleApi = {
-  verifyTransaction: (transactionId: string) =>
-    apiFetch<{ status: string; tier: string }>("/api/paddle/verify-transaction", {
-      method: "POST",
-      body: JSON.stringify({ transaction_id: transactionId }),
-    }),
+  getCheckoutUrl: (price_id: string) =>
+    apiFetch<{ price_id: string; checkout_url: string }>(
+      `/api/payments/paddle-checkout?price_id=${encodeURIComponent(price_id)}`,
+      { method: "GET" }
+    ),
+  verifyTransaction: (transaction_id: string) =>
+    apiFetch<{ status: string; tier: string }>(
+      "/api/payments/verify-transaction",
+      {
+        method: "POST",
+        body: JSON.stringify({ transaction_id }),
+      }
+    ),
 };

@@ -1,212 +1,209 @@
 "use client";
-import { useEffect, useState } from "react";
-import { useAuth } from "@/app/_components/AuthProvider";
-import { useRouter } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { CheckCircle } from "lucide-react";
-import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
-import { paddleApi } from "@/app/_lib/api";
 
-const TIERS = [
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Check } from "lucide-react";
+import { useAuth } from "@/app/_lib/hooks";
+
+
+const tiers = [
   {
     name: "Free",
-    price: "₹0",
-    period: "/month",
+    price: 0,
+    period: "Forever",
     priceId: null,
+    description: "Perfect to get started",
     features: [
-      "1 income source/platform",
-      "Up to 5 invoices per month",
-      "Basic GST estimate (total only)",
-      "1 advance tax reminder",
-      "Invoice preview only",
+      "1 income source",
+      "Up to 10 invoices/month",
+      "Basic GST estimate",
+      "Email support",
     ],
-    button: "Current Plan",
   },
   {
     name: "Pro",
-    price: "₹499",
-    period: "/month",
-    priceId: process.env.NEXT_PUBLIC_PADDLE_PRICE_ID_PRO ?? null,
+    price: 499,
+    period: "per month",
+    priceId: process.env.NEXT_PUBLIC_PADDLE_PRICE_ID_PRO,
+    description: "For active freelancers",
     features: [
       "Unlimited income sources",
       "Unlimited invoices",
-      "Full GST breakdown (CGST/SGST/IGST)",
-      "All 4 advance tax reminders",
-      "Invoice PDF download",
-      "Multi-currency conversion",
-      "Up to 2 user seats",
-      "Basic expense tracking",
+      "Advanced GST estimates",
+      "Advance tax alerts",
+      "Priority support",
     ],
-    button: "Upgrade to Pro",
   },
   {
     name: "Premium",
-    price: "₹999",
-    period: "/month",
-    priceId: process.env.NEXT_PUBLIC_PADDLE_PRICE_ID_PREMIUM ?? null,
+    price: 999,
+    period: "per month",
+    priceId: process.env.NEXT_PUBLIC_PADDLE_PRICE_ID_PREMIUM,
+    description: "Complete financial toolkit",
     features: [
       "Everything in Pro",
-      "AI Tax Copilot",
-      "Export-of-services guidance",
-      "Audit-ready CSV/Excel export",
-      "GST filing summary report",
-      "Up to 5 user seats",
-      "Priority Support badge",
+      "CA filing prep export",
+      "Tax deduction calculator",
+      "Quarterly reports",
+      "Dedicated support",
     ],
-    button: "Upgrade to Premium",
   },
 ];
 
-function PricingContent() {
-  const { user, subscription, refresh } = useAuth();
+export default function PricingPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  const txnId = searchParams.get("transaction_id");
-  const checkoutSuccess = searchParams.get("checkout");
-
-   useEffect(() => {
-     const verifyTransaction = async () => {
-       setLoading(true);
-       try {
-         const result = await paddleApi.verifyTransaction(txnId || "");
-         await refresh();
-         window.history.replaceState({}, "", "/pricing");
-         alert(`Payment verified! Your ${result.tier} plan is active.`);
-       } catch (err) {
-         console.error("Transaction verification failed:", err);
-       } finally {
-         setLoading(false);
-       }
-     };
-
-     if (txnId && checkoutSuccess === "success") {
-       verifyTransaction();
-     }
-   }, [txnId, checkoutSuccess, refresh]);
-
-
-  const handleUpgrade = (priceId: string | null) => {
-    if (!priceId) {
-      alert("Price not configured");
-      return;
-    }
-
-    if (!user) {
-      router.push("/login");
-      return;
-    }
-
-    const Paddle = (window as any).Paddle;
-    if (!Paddle) {
-      alert("Payment system not ready");
-      return;
-    }
-
-    Paddle.Checkout.open({
-      items: [{ priceId }],
-      customer: { email: user.email },
-      customData: { user_id: user.id },
-      settings: {
-        displayMode: "overlay",
-        theme: "light",
-      },
-      eventCallback: (data: any) => {
-        if (data.event === "checkout.completed") {
-          const txnId = data.data.transaction_id;
-          Paddle.Checkout.close();
-          window.location.href = `/pricing?checkout=success&transaction_id=${txnId}`;
-        }
-      },
-    });
-  };
+  const { user } = useAuth();
+  const [loading, setLoading] = useState<string | null>(null);
+  const [paddleLoaded, setPaddleLoaded] = useState(false);
 
   useEffect(() => {
     const script = document.createElement("script");
     script.src = "https://cdn.paddle.com/paddle/v2/paddle.js";
     script.async = true;
     script.onload = () => {
-      const Paddle = (window as any).Paddle;
-      if (Paddle) {
-        Paddle.Environment.set("sandbox");
-        Paddle.Initialize({
-          token: process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN,
-          eventCallback: () => {},
+      const win = window as any;
+      if (win.Paddle) {
+        win.Paddle.Environment.set("sandbox");
+        win.Paddle.Initialize({
+          token: process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN || "",
         });
+        setPaddleLoaded(true);
       }
     };
     document.body.appendChild(script);
   }, []);
 
+
+  const handleUpgrade = (tier: typeof tiers[0]) => {
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+    if (!tier.priceId) return;
+
+    setLoading(tier.name);
+    const win = window as any;
+    if (win.Paddle && paddleLoaded) {
+      win.Paddle.Checkout.open({
+        items: [
+          {
+            priceId: tier.priceId,
+          },
+        ],
+        customData: {
+          user_id: user.id,
+        },
+        settings: {
+          successUrl: `${window.location.origin}/dashboard?checkout=success`,
+          locale: "en",
+        },
+        eventCallback: (data: any) => {
+          if (data.event === "checkout.completed") {
+            const txnId = data.data?.transaction_id;
+            if (txnId) {
+              win.Paddle.Checkout.close();
+              window.location.href = `/dashboard?checkout=success&transaction_id=${txnId}`;
+            }
+          }
+        },
+      });
+    }
+    setLoading(null);
+  };
+
   return (
-    <div className="mx-auto max-w-7xl space-y-8 p-6">
+    <div className="p-6 space-y-8 max-w-6xl mx-auto">
       <div className="text-center">
-        <h1 className="text-4xl font-bold text-gray-900">Simple, Transparent Pricing</h1>
-        <p className="mt-2 text-lg text-gray-600">
-          Choose the plan that works for your freelancing business
+        <h1 className="text-3xl font-semibold text-gray-900">Pricing</h1>
+        <p className="text-gray-600 mt-2">
+          Choose the perfect plan for your freelance business
         </p>
       </div>
 
-      {error && (
-        <div className="rounded-lg border border-red-300 bg-red-50 p-4 text-red-700">
-          {error}
-        </div>
-      )}
-
-      <div className="grid gap-6 md:grid-cols-3">
-        {TIERS.map((tier) => (
-          <Card key={tier.name} className="border-gray-200 bg-white">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {tiers.map((tier) => (
+          <Card
+            key={tier.name}
+            className={`bg-white border-2 flex flex-col ${
+              tier.name === "Pro"
+                ? "border-blue-600 shadow-lg relative"
+                : "border-gray-200"
+            }`}
+          >
+            {tier.name === "Pro" && (
+              <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-600">
+                Most Popular
+              </Badge>
+            )}
             <CardHeader>
-              <CardTitle className="text-2xl text-gray-900">{tier.name}</CardTitle>
-              <div className="mt-2 text-3xl font-bold text-gray-900">
-                {tier.price}
-                <span className="text-lg font-normal text-gray-600">{tier.period}</span>
+              <CardTitle className="text-gray-900">{tier.name}</CardTitle>
+              <p className="text-sm text-gray-600 mt-2">{tier.description}</p>
+              <div className="mt-4">
+                <p className="text-4xl font-bold text-gray-900">
+                  {tier.price === 0 ? "Free" : `₹${tier.price}`}
+                </p>
+                <p className="text-sm text-gray-600">{tier.period}</p>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <Button
-                onClick={() =>
-                  tier.priceId
-                    ? handleUpgrade(tier.priceId)
-                    : alert("Already on Free plan")
-                }
-                disabled={subscription?.tier === tier.name.toLowerCase() || loading}
-                className="w-full"
-              >
-                {subscription?.tier === tier.name.toLowerCase()
-                  ? "Current Plan"
-                  : tier.button}
-              </Button>
-              <div className="space-y-2">
-                {tier.features.map((feat, idx) => (
-                  <div key={idx} className="flex gap-2">
-                    <CheckCircle className="h-5 w-5 flex-shrink-0 text-gray-600" />
-                    <span className="text-sm text-gray-600">{feat}</span>
-                  </div>
+            <CardContent className="flex-1 flex flex-col">
+              <ul className="space-y-3 mb-6 flex-1">
+                {tier.features.map((feature) => (
+                  <li key={feature} className="flex items-start">
+                    <Check className="h-4 w-4 text-green-600 mr-3 mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-gray-700">{feature}</span>
+                  </li>
                 ))}
-              </div>
+              </ul>
+              {user?.tier === tier.name.toLowerCase() ? (
+                <Button className="w-full" disabled>
+                  Current Plan
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => handleUpgrade(tier)}
+                  disabled={loading !== null || tier.priceId === null}
+                  className={`w-full ${
+                    tier.name === "Pro"
+                      ? "bg-blue-600 hover:bg-blue-700"
+                      : ""
+                  }`}
+                  variant={tier.name === "Free" ? "outline" : "default"}
+                >
+                  {loading === tier.name
+                    ? "Processing..."
+                    : tier.name === "Free"
+                      ? "Get Started"
+                      : "Upgrade"}
+                </Button>
+              )}
             </CardContent>
           </Card>
         ))}
       </div>
 
-      <div className="rounded-lg bg-gray-50 p-6 text-center">
-        <p className="text-sm text-gray-600">
-          All plans include ₹0 setup fee. Cancel anytime. 14-day free trial available.
-        </p>
+      <div className="bg-gray-50 rounded-lg p-6 border border-gray-200">
+        <h3 className="text-lg font-semibold text-gray-900 mb-3">
+          All tiers include:
+        </h3>
+        <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {[
+            "Email/password authentication",
+            "Income tracking & aggregation",
+            "GST liability calculations",
+            "Invoice generation & storage",
+            "Multi-currency support",
+            "Dashboard analytics",
+          ].map((feature) => (
+            <li key={feature} className="flex items-center text-gray-700">
+              <Check className="h-4 w-4 text-green-600 mr-2" />
+              {feature}
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
-  );
-}
-
-export default function PricingPage() {
-  return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center">Loading...</div>}>
-      <PricingContent />
-    </Suspense>
   );
 }

@@ -1,131 +1,151 @@
 "use client";
-import { ReactNode, useState, useEffect } from "react";
-import { useRouter, usePathname } from "next/navigation";
-import { useAuth } from "./AuthProvider";
-import { Button } from "@/components/ui/button";
-import { Menu, X, LogOut, BarChart3, FileText, Settings, Zap, Headphones } from "lucide-react";
-import Link from "next/link";
 
-const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
-  { href: "/invoices", label: "Invoices", icon: FileText },
-  { href: "/copilot", label: "Copilot", icon: Headphones },
-  { href: "/export", label: "Export", icon: Zap },
-  { href: "/settings", label: "Settings", icon: Settings },
+import { useState, useEffect } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import Link from "next/link";
+import { Menu, X, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useAuth } from "@/app/_lib/hooks";
+
+const navItems = [
+  { label: "Dashboard", href: "/dashboard" },
+  { label: "Income", href: "/income" },
+  { label: "Invoices", href: "/invoices" },
+  { label: "Profile", href: "/profile" },
+  { label: "Settings", href: "/settings" },
+  { label: "Pricing", href: "/pricing" },
 ];
 
-export default function AppShell({ children }: { children: ReactNode }) {
-  const { user, loading, logout } = useAuth();
+export function AppShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { user, loading, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/login");
-    }
-  }, [user, loading, router]);
+    setIsMounted(true);
+  }, []);
 
   useEffect(() => {
     setSidebarOpen(false);
   }, [pathname]);
-
-  if (loading || !user) return null;
 
   const handleLogout = async () => {
     await logout();
     router.push("/login");
   };
 
+  if (!isMounted || loading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-white">
+        <div className="text-center">
+          <p className="text-gray-500">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    router.push("/login");
+    return null;
+  }
+
+  if (!user.onboarding_complete && pathname !== "/onboarding") {
+    router.push("/onboarding");
+    return null;
+  }
+
+
   return (
     <div className="flex h-screen bg-white">
-      <aside className="hidden md:flex md:w-64 md:flex-col md:border-r md:border-gray-200 md:bg-white">
-        <div className="flex h-14 items-center border-b border-gray-200 px-6">
-          <h1 className="text-lg font-semibold text-gray-900">GigLedger</h1>
-        </div>
-        <nav className="flex-1 space-y-1 px-3 py-6">
-          {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-            const isActive = pathname === href;
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm ${
-                  isActive
-                    ? "bg-gray-100 font-medium text-gray-900"
-                    : "text-gray-700 hover:bg-gray-100"
-                }`}
-              >
-                <Icon className="h-5 w-5" />
-                {label}
+      <aside className="hidden md:fixed md:inset-y-0 md:left-0 md:z-50 md:flex md:w-64 md:flex-col md:border-r md:border-gray-200 md:bg-white">
+        <div className="flex flex-col h-full">
+          <div className="p-6 border-b border-gray-200">
+            <h1 className="text-2xl font-semibold text-gray-900">₹ GigLedger</h1>
+          </div>
+          <nav className="flex-1 space-y-2 p-4">
+            {navItems.map((item) => (
+              <Link key={item.href} href={item.href}>
+                <div
+                  className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                    pathname === item.href
+                      ? "bg-gray-100 text-gray-900"
+                      : "text-gray-700 hover:bg-gray-50"
+                  }`}
+                >
+                  {item.label}
+                </div>
               </Link>
-            );
-          })}
-        </nav>
-        <div className="border-t border-gray-200 p-3">
-          <Button
-            onClick={handleLogout}
-            variant="outline"
-            className="w-full justify-start gap-2"
-          >
-            <LogOut className="h-4 w-4" />
-            Logout
-          </Button>
+            ))}
+          </nav>
+          <div className="p-4 border-t border-gray-200">
+            <Button
+              onClick={handleLogout}
+              className="w-full justify-start"
+              variant="ghost"
+              size="sm"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+            </Button>
+          </div>
         </div>
       </aside>
 
-      <div className="flex w-full flex-col">
-        <header className="flex h-14 items-center border-b border-gray-200 bg-white px-6 md:hidden">
+      <div className="md:ml-64 w-full flex flex-col">
+        <header className="md:hidden h-14 border-b border-gray-200 bg-white flex items-center px-4">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="text-gray-700 hover:text-gray-900"
+            className="text-gray-900"
           >
-            {sidebarOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            {sidebarOpen ? (
+              <X className="h-6 w-6" />
+            ) : (
+              <Menu className="h-6 w-6" />
+            )}
           </button>
-          <h1 className="ml-4 text-lg font-semibold text-gray-900">GigLedger</h1>
+          <div className="ml-4 text-xl font-semibold text-gray-900">₹ GigLedger</div>
         </header>
 
         {sidebarOpen && (
           <div className="fixed inset-0 z-40 md:hidden">
             <div
-              className="absolute inset-0 bg-black/50"
+              className="absolute inset-0 bg-black bg-opacity-50"
               onClick={() => setSidebarOpen(false)}
             />
-            <aside className="absolute left-0 top-14 bottom-0 w-64 border-r border-gray-200 bg-white">
-              <nav className="space-y-1 px-3 py-6">
-                {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-                  const isActive = pathname === href;
-                  return (
-                    <Link
-                      key={href}
-                      href={href}
-                      className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm ${
-                        isActive
-                          ? "bg-gray-100 font-medium text-gray-900"
-                          : "text-gray-700 hover:bg-gray-100"
-                      }`}
-                    >
-                      <Icon className="h-5 w-5" />
-                      {label}
-                    </Link>
-                  );
-                })}
-              </nav>
-              <div className="border-t border-gray-200 p-3">
+            <nav className="absolute left-0 top-14 w-48 bg-white border-r border-gray-200 flex flex-col space-y-2 p-4 h-[calc(100vh-3.5rem)] overflow-y-auto">
+              {navItems.map((item) => (
+                <Link key={item.href} href={item.href}>
+                  <div
+                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                      pathname === item.href
+                        ? "bg-gray-100 text-gray-900"
+                        : "text-gray-700 hover:bg-gray-50"
+                    }`}
+                  >
+                    {item.label}
+                  </div>
+                </Link>
+              ))}
+              <div className="mt-auto pt-4 border-t border-gray-200">
                 <Button
                   onClick={handleLogout}
-                  variant="outline"
-                  className="w-full justify-start gap-2"
+                  className="w-full justify-start"
+                  variant="ghost"
+                  size="sm"
                 >
-                  <LogOut className="h-4 w-4" />
+                  <LogOut className="mr-2 h-4 w-4" />
                   Logout
                 </Button>
               </div>
-            </aside>
+            </nav>
           </div>
         )}
 
-        <main className="flex-1 overflow-auto md:ml-0">{children}</main>
+        <main className="flex-1 overflow-y-auto bg-gray-50">
+          {children}
+        </main>
       </div>
     </div>
   );
