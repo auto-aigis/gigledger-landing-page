@@ -1,166 +1,172 @@
 "use client";
+
 import { useState } from "react";
 import { incomeApi } from "@/app/_lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-const PLATFORMS = [
-  "Upwork",
-  "Fiverr",
-  "Toptal",
-  "Direct Client",
-  "UPI",
-  "Bank Transfer",
-  "Other",
-];
+interface IncomeFormProps {
+  onSuccess?: () => void;
+}
 
-const CURRENCIES = ["INR", "USD", "GBP", "EUR"];
-
-export default function IncomeForm({
-  onSuccess,
-  onCancel,
-}: {
-  onSuccess: () => void;
-  onCancel: () => void;
-}) {
-  const [loading, setLoading] = useState(false);
+export function IncomeForm({ onSuccess }: IncomeFormProps) {
+  const [platform, setPlatform] = useState("Upwork");
+  const [amount, setAmount] = useState("");
+  const [currency, setCurrency] = useState("INR");
+  const [amountInr, setAmountInr] = useState("");
+  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [clientName, setClientName] = useState("");
+  const [serviceType, setServiceType] = useState("domestic");
   const [error, setError] = useState("");
-  const [formData, setFormData] = useState({
-    platform_source: "Upwork",
-    amount: 0,
-    currency: "INR",
-    entry_date: new Date().toISOString().split("T")[0],
-    client_name: "",
-    description: "",
-  });
+  const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError("");
+    setSubmitting(true);
+
     try {
-      await incomeApi.create({
-        ...formData,
-        amount: parseFloat(String(formData.amount)),
-      });
-      onSuccess();
+      const formData = {
+        platform,
+        amount_original: parseFloat(amount),
+        original_currency: currency,
+        amount_inr: parseFloat(amountInr || amount),
+        date,
+        client_name: clientName || null,
+        service_type: serviceType,
+      };
+
+      await incomeApi.create(
+        formData.platform,
+        formData.amount_original,
+        formData.original_currency,
+        formData.amount_inr,
+        formData.date,
+        formData.client_name,
+        formData.service_type
+      );
+
+      setPlatform("Upwork");
+      setAmount("");
+      setCurrency("INR");
+      setAmountInr("");
+      setDate(new Date().toISOString().split("T")[0]);
+      setClientName("");
+      setServiceType("domestic");
+
+      if (onSuccess) {
+        onSuccess();
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to add income");
+      setError(err instanceof Error ? err.message : "Failed to create entry");
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
   return (
-    <Card className="border-gray-200 bg-white">
-      <CardHeader>
-        <CardTitle>Add Income Entry</CardTitle>
-      </CardHeader>
-      <CardContent>
-        {error && <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</div>}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="text-sm font-medium text-gray-700">Platform</label>
-              <Select
-                value={formData.platform_source}
-                onValueChange={(val) =>
-                  setFormData({ ...formData, platform_source: val })
-                }
-              >
-                <SelectTrigger className="border-gray-300 bg-white text-gray-900">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {PLATFORMS.map((p) => (
-                    <SelectItem key={p} value={p}>
-                      {p}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700">Currency</label>
-              <Select
-                value={formData.currency}
-                onValueChange={(val) =>
-                  setFormData({ ...formData, currency: val })
-                }
-              >
-                <SelectTrigger className="border-gray-300 bg-white text-gray-900">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {CURRENCIES.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {c}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700">Amount</label>
-              <Input
-                type="number"
-                step="0.01"
-                value={formData.amount}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    amount: parseFloat(e.target.value) || 0,
-                  })
-                }
-                className="border-gray-300 bg-white text-gray-900"
-                required
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium text-gray-700">Date</label>
-              <Input
-                type="date"
-                value={formData.entry_date}
-                onChange={(e) =>
-                  setFormData({ ...formData, entry_date: e.target.value })
-                }
-                className="border-gray-300 bg-white text-gray-900"
-                required
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="text-sm font-medium text-gray-700">Client Name (optional)</label>
-              <Input
-                value={formData.client_name}
-                onChange={(e) =>
-                  setFormData({ ...formData, client_name: e.target.value })
-                }
-                className="border-gray-300 bg-white text-gray-900"
-              />
-            </div>
-            <div className="md:col-span-2">
-              <label className="text-sm font-medium text-gray-700">Description (optional)</label>
-              <Input
-                value={formData.description}
-                onChange={(e) =>
-                  setFormData({ ...formData, description: e.target.value })
-                }
-                className="border-gray-300 bg-white text-gray-900"
-              />
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button type="submit" disabled={loading} className="flex-1">
-              {loading ? "Saving..." : "Add Entry"}
-            </Button>
-            <Button type="button" onClick={onCancel} variant="outline" className="flex-1">
-              Cancel
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {error && <div className="text-red-600 text-sm">{error}</div>}
+
+      <div>
+        <Label htmlFor="platform">Platform</Label>
+        <Select value={platform} onValueChange={setPlatform}>
+          <SelectTrigger id="platform">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="Upwork">Upwork</SelectItem>
+            <SelectItem value="Fiverr">Fiverr</SelectItem>
+            <SelectItem value="Freelancer">Freelancer</SelectItem>
+            <SelectItem value="Other">Other</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div>
+        <Label htmlFor="amount">Amount</Label>
+        <Input
+          id="amount"
+          type="number"
+          placeholder="0.00"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          required
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="currency">Currency</Label>
+        <Select value={currency} onValueChange={setCurrency}>
+          <SelectTrigger id="currency">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="INR">INR</SelectItem>
+            <SelectItem value="USD">USD</SelectItem>
+            <SelectItem value="EUR">EUR</SelectItem>
+            <SelectItem value="GBP">GBP</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div>
+        <Label htmlFor="amountInr">Amount in INR</Label>
+        <Input
+          id="amountInr"
+          type="number"
+          placeholder="0.00"
+          value={amountInr}
+          onChange={(e) => setAmountInr(e.target.value)}
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="date">Date</Label>
+        <Input
+          id="date"
+          type="date"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          required
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="clientName">Client Name</Label>
+        <Input
+          id="clientName"
+          type="text"
+          placeholder="Client name (optional)"
+          value={clientName}
+          onChange={(e) => setClientName(e.target.value)}
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="serviceType">Service Type</Label>
+        <Select value={serviceType} onValueChange={setServiceType}>
+          <SelectTrigger id="serviceType">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="domestic">Domestic</SelectItem>
+            <SelectItem value="export">Export</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <Button type="submit" disabled={submitting}>
+        {submitting ? "Adding..." : "Add Income"}
+      </Button>
+    </form>
   );
 }
