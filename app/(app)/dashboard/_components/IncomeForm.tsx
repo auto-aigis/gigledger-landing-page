@@ -5,6 +5,7 @@ import { incomeApi } from "@/app/_lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -17,13 +18,14 @@ interface IncomeFormProps {
   onSuccess?: () => void;
 }
 
-export function IncomeForm({ onSuccess }: IncomeFormProps) {
+export default function IncomeForm({ onSuccess }: IncomeFormProps) {
   const [platform, setPlatform] = useState("Upwork");
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState("INR");
   const [amountInr, setAmountInr] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [clientName, setClientName] = useState("");
+  const [description, setDescription] = useState("");
   const [serviceType, setServiceType] = useState("domestic");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -39,20 +41,13 @@ export function IncomeForm({ onSuccess }: IncomeFormProps) {
         amount_original: parseFloat(amount),
         original_currency: currency,
         amount_inr: parseFloat(amountInr || amount),
-        date,
+        date: new Date(date).toISOString(),
         client_name: clientName || null,
+        description: description || null,
         service_type: serviceType,
       };
 
-      await incomeApi.create(
-        formData.platform,
-        formData.amount_original,
-        formData.original_currency,
-        formData.amount_inr,
-        formData.date,
-        formData.client_name,
-        formData.service_type
-      );
+      await incomeApi.create(formData);
 
       setPlatform("Upwork");
       setAmount("");
@@ -60,6 +55,7 @@ export function IncomeForm({ onSuccess }: IncomeFormProps) {
       setAmountInr("");
       setDate(new Date().toISOString().split("T")[0]);
       setClientName("");
+      setDescription("");
       setServiceType("domestic");
 
       if (onSuccess) {
@@ -85,7 +81,10 @@ export function IncomeForm({ onSuccess }: IncomeFormProps) {
           <SelectContent>
             <SelectItem value="Upwork">Upwork</SelectItem>
             <SelectItem value="Fiverr">Fiverr</SelectItem>
-            <SelectItem value="Freelancer">Freelancer</SelectItem>
+            <SelectItem value="Toptal">Toptal</SelectItem>
+            <SelectItem value="Direct Client">Direct Client</SelectItem>
+            <SelectItem value="UPI">UPI</SelectItem>
+            <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
             <SelectItem value="Other">Other</SelectItem>
           </SelectContent>
         </Select>
@@ -148,6 +147,17 @@ export function IncomeForm({ onSuccess }: IncomeFormProps) {
           placeholder="Client name (optional)"
           value={clientName}
           onChange={(e) => setClientName(e.target.value)}
+        />
+      </div>
+
+      <div>
+        <Label htmlFor="description">Description</Label>
+        <Textarea
+          id="description"
+          placeholder="Description (optional)"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          rows={2}
         />
       </div>
 

@@ -6,18 +6,26 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface InvoiceFormProps {
   onSuccess?: () => void;
 }
 
-export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
+export default function InvoiceForm({ onSuccess }: InvoiceFormProps) {
   const [clientName, setClientName] = useState("");
   const [clientAddress, setClientAddress] = useState("");
   const [clientGstin, setClientGstin] = useState("");
   const [serviceDescription, setServiceDescription] = useState("");
   const [hscSacCode, setHscSacCode] = useState("");
   const [amount, setAmount] = useState("");
+  const [taxType, setTaxType] = useState("cgst_sgst");
   const [gstRate, setGstRate] = useState("18");
   const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split("T")[0]);
   const [error, setError] = useState("");
@@ -37,19 +45,11 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
         hsc_sac_code: hscSacCode || null,
         amount: parseFloat(amount),
         gst_rate: parseFloat(gstRate),
-        invoice_date: invoiceDate,
+        tax_type: taxType,
+        invoice_date: new Date(invoiceDate).toISOString(),
       };
 
-      await invoiceApi.create(
-        formData.client_name,
-        formData.client_address,
-        formData.client_gstin,
-        formData.service_description,
-        formData.hsc_sac_code,
-        formData.amount,
-        formData.gst_rate,
-        formData.invoice_date
-      );
+      await invoiceApi.create(formData);
 
       setClientName("");
       setClientAddress("");
@@ -57,6 +57,7 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
       setServiceDescription("");
       setHscSacCode("");
       setAmount("");
+      setTaxType("cgst_sgst");
       setGstRate("18");
       setInvoiceDate(new Date().toISOString().split("T")[0]);
 
@@ -140,6 +141,19 @@ export function InvoiceForm({ onSuccess }: InvoiceFormProps) {
           onChange={(e) => setAmount(e.target.value)}
           required
         />
+      </div>
+
+      <div>
+        <Label htmlFor="taxType">Tax Type</Label>
+        <Select value={taxType} onValueChange={setTaxType}>
+          <SelectTrigger id="taxType">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="cgst_sgst">CGST + SGST (Domestic)</SelectItem>
+            <SelectItem value="igst">IGST (Export)</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       <div>

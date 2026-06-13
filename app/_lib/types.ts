@@ -4,6 +4,7 @@ export interface User {
   display_name: string | null;
   pan_number: string | null;
   gst_status: string;
+  gstin: string | null;
   primary_currency: string;
   address: string | null;
   tier: string;
@@ -19,6 +20,7 @@ export interface IncomeEntry {
   amount_inr: number;
   date: string;
   client_name: string | null;
+  description: string | null;
   service_type: string;
   created_at: string;
 }
@@ -32,6 +34,9 @@ export interface IncomeSummary {
 
 export interface GSTEstimate {
   estimated_gst_payable: number;
+  cgst: number;
+  sgst: number;
+  igst: number;
   domestic_income: number;
   export_income: number;
   threshold_progress_percent: number;
@@ -48,6 +53,7 @@ export interface Invoice {
   hsc_sac_code: string | null;
   amount: number;
   gst_rate: number;
+  tax_type: string;
   cgst: number;
   sgst: number;
   igst: number;
